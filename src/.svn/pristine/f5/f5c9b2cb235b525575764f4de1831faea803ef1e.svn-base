@@ -1,0 +1,530 @@
+<?php
+/**
+ * @package		Joomla.Site
+ * @subpackage	com_content
+ * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+defined('_JEXEC') or die;
+
+/**
+ * Content Component Controller
+ *
+ * @package		Joomla.Site
+ * @subpackage	com_content
+ * @since		1.5
+ */
+class ContentController extends JControllerLegacy
+{
+	function __construct($config = array())
+	{
+		// Article frontpage Editor pagebreak proxying:
+		if (JRequest::getCmd('view') === 'article' && JRequest::getCmd('layout') === 'pagebreak') {
+			$config['base_path'] = JPATH_COMPONENT_ADMINISTRATOR;
+		}
+		// Article frontpage Editor article proxying:
+		elseif(JRequest::getCmd('view') === 'articles' && JRequest::getCmd('layout') === 'modal') {
+			JHtml::_('stylesheet', 'system/adminlist.css', array(), true);
+			$config['base_path'] = JPATH_COMPONENT_ADMINISTRATOR;
+		}
+
+		parent::__construct($config);
+	}
+
+	/**
+	 * Method to display a view.
+	 *
+	 * @param	boolean			If true, the view output will be cached
+	 * @param	array			An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
+	 *
+	 * @return	JController		This object to support chaining.
+	 * @since	1.5
+	 */
+	public function display($cachable = false, $urlparams = false)
+	{
+		$cachable = true;
+
+		JHtml::_('behavior.caption');
+
+		// Set the default view name and format from the Request.
+		// Note we are using a_id to avoid collisions with the router and the return page.
+		// Frontend is a bit messier than the backend.
+		$id		= JRequest::getInt('a_id');
+		$vName	= JRequest::getCmd('view', 'categories');
+		JRequest::setVar('view', $vName);
+
+		$user = JFactory::getUser();
+
+		if ($user->get('id') ||
+			($_SERVER['REQUEST_METHOD'] == 'POST' &&
+				(($vName == 'category' && JRequest::getCmd('layout') != 'blog') || $vName == 'archive' ))) {
+			$cachable = false;
+		}
+
+		$safeurlparams = array('catid'=>'INT', 'id'=>'INT', 'cid'=>'ARRAY', 'year'=>'INT', 'month'=>'INT', 'limit'=>'UINT', 'limitstart'=>'UINT',
+			'showall'=>'INT', 'return'=>'BASE64', 'filter'=>'STRING', 'filter_order'=>'CMD', 'filter_order_Dir'=>'CMD', 'filter-search'=>'STRING', 'print'=>'BOOLEAN', 'lang'=>'CMD');
+
+		// Check for edit form.
+		if ($vName == 'form' && !$this->checkEditId('com_content.edit.article', $id)) {
+			// Somehow the person just went to the form - we don't allow that.
+			return JError::raiseError(403, JText::sprintf('JLIB_APPLICATION_ERROR_UNHELD_ID', $id));
+		}
+
+		parent::display($cachable, $safeurlparams);
+
+		return $this;
+	}
+
+    public function get_texts_ranking(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $period = JRequest::getString('period');
+        $user_id = JFactory::getUser()->get('id');
+
+
+        $texts = ideary::getTextsRanking($user_id, $period);
+        $countAllTexts = ideary::getCountTextsRanking($period);
+
+        $html = "";
+        $i = 1;
+        foreach($texts as $text){
+            $html .= ideary::generateTextRankingHTML($text, $i);
+            $i++;
+        }
+
+        echo json_encode(array(
+            'text_count' => count($texts),
+            'text_html' => $html,
+            'countAllTexts' => $countAllTexts
+            ));
+
+        $app->close();
+    }
+
+    public function get_more_texts(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $texts_array_html = array();
+
+        $category_post = JRequest::getString('category_post');
+        $period_post = JRequest::getString('period_post');
+        $text_search_post = JRequest::getString('text_search_post');
+        $userId = JRequest::getString('userId');
+        $offset = JRequest::getInt('offset');
+
+        $texts = ideary::getTexts($category_post, $period_post, $text_search_post, $userId, $offset);
+
+        foreach($texts as $index => $text){
+            $texts_array_html[] = ideary::removeNewLinesFromString(ideary::generateTextContent($text, JFactory::getUser()->get('id'), ($index+$offset), false, false, true));
+        }
+
+        echo json_encode(array(
+            'texts_array_html' => $texts_array_html
+        ));
+
+        $app->close();
+    }
+
+    public function get_more_texts_ranking(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $texts_array_html = array();
+
+        $period = JRequest::getString('period');
+        $userId = JRequest::getString('userId');
+        $offset = JRequest::getInt('offset');
+
+        $texts = ideary::getTextsRanking($userId, $period, $offset);
+
+        $index = 1;
+        foreach($texts as $text){
+            $texts_array_html[] = ideary::removeNewLinesFromString(ideary::generateTextRankingHTML($text, ($index+$offset)));
+            $index++;
+        }
+
+        echo json_encode(array(
+            'texts_array_html' => $texts_array_html
+        ));
+
+        $app->close();
+    }
+
+    public function clap(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getInt('text_id');
+
+        $writer_id = JRequest::getInt('writer_id');
+
+        $user_id = JFactory::getUser()->get('id');
+
+        $user_id = ($user_id)? $user_id : 949;
+
+        $article_model = $this->getModel('article');
+
+        if($article_model->is_clapped($text_id, $user_id)){
+
+            echo json_encode(array('success' => true));
+
+        }
+        else{
+
+        $result = $article_model->clap($text_id, $user_id);
+
+        //$notification = $article_model->getNotification($writer_id, 'applaud');
+        $notification = $article_model->getNotification2($writer_id, 'clap');
+		
+		/*
+        if($result && $notification){
+
+            if($notification->send_email){
+
+                $writer = $article_model->getUser($user_id);
+                $text = $article_model->getText($text_id);
+
+                $subject = JText::_("HAVE_BEEN_APPLAUDED_EMAIL_SUBJECT");
+                $content = JText::_("HAVE_BEEN_APPLAUDED_EMAIL_BODY");
+                $content = str_replace("{user}", JFactory::getUser()->get('username'), $content);
+                $content = str_replace("{title}", $text->title, $content);
+                $recipient = $writer->email;
+
+                $this->sendMail($subject, $content, $recipient);
+            }
+
+            $article_model->saveNotification($notification->id, $writer_id, $text_id, $user_id);
+        }*/
+		$article_model->saveNotification(3, $writer_id, $text_id, $user_id);
+
+        echo json_encode(array('success' => $result));
+
+        }
+
+        $app->close();
+    }
+
+    public function add_to_favorites(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getInt('text_id');
+
+        $user_id = JFactory::getUser()->get('id');
+
+        $user_id = ($user_id)? $user_id : 949;
+
+        $article_model = $this->getModel('article');
+
+        if($article_model->isFavorite($text_id, $user_id)){
+            echo json_encode(array('success' => true));
+        }
+        else{
+            $result = $article_model->addToFavotites($text_id, $user_id);
+
+            echo json_encode(array('success' => $result));
+        }
+
+
+        $app->close();
+
+    }
+
+    public function undo_add_to_favorites(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getInt('text_id');
+
+        $user_id = JFactory::getUser()->get('id');
+
+        $user_id = ($user_id)? $user_id : 949;
+
+        $article_model = $this->getModel('article');
+
+        $result = $article_model->undoAddToFavotites($text_id, $user_id);
+
+        echo json_encode(array('success' => $result));
+
+        $app->close();
+
+    }
+
+    public function add_to_saved(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getInt('text_id');
+
+        $user_id = JFactory::getUser()->get('id');
+
+        $user_id = ($user_id)? $user_id : 949;
+
+        $article_model = $this->getModel('article');
+
+        if($article_model->isSaved($text_id, $user_id)){
+            echo json_encode(array('success' => true));
+        }
+        else{
+            $result = $article_model->addToSaved($text_id, $user_id);
+
+            echo json_encode(array('success' => $result));
+        }
+
+        $app->close();
+
+    }
+
+    public function unarchive(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getInt('text_id');
+
+        $user_id = JFactory::getUser()->get('id');
+
+        $user_id = ($user_id)? $user_id : 949;
+
+        $article_model = $this->getModel('article');
+
+        $result = $article_model->unarchive($text_id, $user_id);
+
+        echo json_encode(array('success' => $result));
+
+        $app->close();
+
+    }
+
+    public function denounce(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getInt('text_id');
+
+        $user_id = JFactory::getUser()->get('id');
+
+        $user_id = ($user_id)? $user_id : 949;
+
+        $article_model = $this->getModel('article');
+
+        $result = $article_model->denounce($text_id, $user_id);
+
+        $mailThis =& JFactory::getMailer();
+        $mailThis->SetFrom('lleonardis@dbsoftwaresolutions.com', 'Ideary');
+        $mailThis->AddReplyTo('lleonardis@dbsoftwaresolutions.com', 'Ideary');
+
+        $subject = "Un usuario ha denunciado un texto";
+
+        $mailThis->setSubject($subject);
+        $mailThis->isHTML(true);
+        $mailThis->Encoding = 'base64';
+
+        $date = date_create();
+        $username = JFactory::getUser()->get('username');
+        $username = ($username)? $username : 'Rodrigo';
+
+        $text = $article_model->findById($text_id);
+
+        $content = "<p>El usuario ".$username.", denunció el texto ".$text->title.", el dia ".$date->format('d/m/Y')." a las ".$date->format('H:i:s')."</p>";
+
+        $mailThis->setBody($content);
+        $mailThis->addRecipient("ll@2bigideas.com");
+        $mailThis->Send();
+
+        echo json_encode(array('success' => $result));
+
+        $app->close();
+
+    }
+
+    private function sendMail($subject, $content, $recipient){
+
+        $mailThis =& JFactory::getMailer();
+        $mailThis->SetFrom('lleonardis@dbsoftwaresolutions.com', 'Ideary');
+        $mailThis->AddReplyTo('lleonardis@dbsoftwaresolutions.com', 'Ideary');
+
+        $mailThis->setSubject($subject);
+        $mailThis->isHTML(true);
+        $mailThis->Encoding = 'base64';
+
+        $mailThis->setBody($content);
+        $mailThis->addRecipient($recipient);
+        $mailThis->Send();
+
+    }
+
+    public function search_tags(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $search = JRequest::getString("search");
+
+        $article_model = $this->getModel('article');
+
+        $tags = $article_model->searchTags($search);
+
+        echo json_encode(array('tags' => $tags));
+
+        $app->close();
+
+    }
+
+    public function exist_tag(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $search = JRequest::getString("search");
+
+        $article_model = $this->getModel('article');
+
+        $tag = $article_model->existTag($search);
+
+        echo json_encode(array('tag' => $tag));
+
+        $app->close();
+
+    }
+
+    public function delete_tag(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $tag_id = JRequest::getString("tag_id");
+        $text_id = JRequest::getString("text_id");
+
+        $article_model = $this->getModel('article');
+
+        $result = $article_model->deleteTag($tag_id, $text_id);
+
+        echo json_encode(array('result' => $result));
+
+        $app->close();
+
+    }
+	
+	public function delete_image_url(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $text_id = JRequest::getString("text_id");
+
+        $article_model = $this->getModel('article');
+
+        $result = $article_model->deleteImage($text_id);
+
+        if($result){
+            $dir = "templates/beez_20/images/texts/".$text_id."/";
+            ideary::rrmdir($dir);
+        }
+
+        echo json_encode(array('result' => $result));
+
+        $app->close();
+
+    }
+
+    public function add_tag(){
+
+    // Get the application object.
+    $app = JFactory::getApplication();
+
+    $tag_id = JRequest::getString("tag_id");
+    $tag_name = JRequest::getString("tag_name");
+    $text_id = JRequest::getString("text_id");
+
+    //$article_model = $this->getModel('article');
+    //$tagId = $article_model->addTag($tag_id, $tag_name, $text_id);
+
+    $tagId = Ideary::addTag($tag_id, $tag_name, $text_id);
+
+    echo json_encode(array('tag_id' => $tagId));
+
+    $app->close();
+
+}
+
+    public function comment_text(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $comment = JRequest::getString("comment");
+        $commenter_id = JRequest::getInt("commenter_id");
+        $text_id = JRequest::getInt("text_id");
+        $writer_id = JRequest::getInt("writer_id");
+
+        $success = ideary::addComment($commenter_id, $text_id, $comment, $writer_id);
+        $commentId = ideary::getLastInsertedCommentId();
+
+        echo json_encode(array(
+            'success' => $success,
+            'comment_id' => $commentId
+        ));
+
+        $app->close();
+
+    }
+
+    public function comment_vote_up(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $comment_id = JRequest::getInt("comment_id");
+        $userId = JFactory::getUser()->get('id');
+
+        $votes_up_success = ideary::voteUp($comment_id, $userId);
+		
+        $votes_down_count = ideary::getVotesDown($comment_id);
+        $votes_up_count = ideary::getVotesUp($comment_id);
+
+        echo json_encode(array(
+            'success' => $votes_up_success,
+            'votes_up_count' => $votes_up_count,
+            'votes_down_count' => $votes_down_count
+        ));
+
+        $app->close();
+
+    }
+
+    public function comment_vote_down(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $comment_id = JRequest::getInt("comment_id");
+        $userId = JFactory::getUser()->get('id');
+
+        $votes_down_success = ideary::voteDown($comment_id, $userId);
+        $votes_down_count = ideary::getVotesDown($comment_id);
+        $votes_up_count = ideary::getVotesUp($comment_id);
+
+        echo json_encode(array(
+            'success' => $votes_down_success,
+            'votes_up_count' => $votes_up_count,
+            'votes_down_count' => $votes_down_count
+        ));
+
+        $app->close();
+
+    }
+
+
+}

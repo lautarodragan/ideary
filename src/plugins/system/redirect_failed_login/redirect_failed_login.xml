@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension  version="1.7" type="plugin" group="system" method="upgrade">
+	<name>System - Redirect Failed Login</name>
+	<author>Roger Noar</author>
+	<creationDate>April 15, 2013</creationDate>
+	<copyright>Copyright (C) 2013 Roger Noar. All rights reserved.</copyright>
+	<license>http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL</license>
+	<authorEmail>webmaster@rayonics.com</authorEmail>
+	<authorUrl>www.rayonics.com</authorUrl>
+	<version>1.65</version>
+	<description><![CDATA[ Redirects to another page upon a failed login attempt. Version 1.65 .
+	Redirection URL help: Use '/' to redirect to your home page; leave blank to use the standard Joomla redirection to the Joomla login page.
+	Use '/' followed by the page suffix (eg: '/using-joomla' or '/index.php?option=com_content&view=article&id...', etc) to redirect to a page in your Joomla website.
+	Use 'http://www.otherwebsite... ' to redirect to another website.]]>
+	</description>
+	<files>
+		<filename plugin="redirect_failed_login">redirect_failed_login.php</filename>
+		<!--<filename plugin="redirect_failed_login">config.xml</filename>-->
+	</files>
+	<config>
+	<fields name="params">
+	<fieldset name="basic">
+		<field name="redirect_destination" type="text" size="50" default="/" label="Redirect to this URL:" description="URL to redirect failed login attempts (default site language)." />
+  		<field name="redirect_message" type="text" size="50" default="" label="Redirection Message:" description="Optional - give a message upon redirection. "/>
+  		<field name="time_delay" type="text" size="10" default="10" label="Delay (seconds):" description="Delay after a failed login, to discourage brute force login attacks. Set to 0 for no delay."/>
+		<field name="message_type" type="radio" default="error" label="Select Joomla Message Type:" description="Choose the Joomla message type to be used for the redirection message.">
+			<option value="message">Message</option>
+			<option value="notice">Notice</option>
+			<option value="warning">Warning</option>
+			<option value="error">Error</option>
+		</field>
+
+  		<field name="language_code2" type="text" size="10" default="" label="Language code for a 2nd language redirect:" description="Use the joomla language code here: en-GB, de-DE, nl-NL, etc. "/>
+		<field name="redirect_destination2" type="text" size="50" default="" label="Redirect to this URL for a 2nd language:" description="URL to redirect failed login attempts." />
+  		<field name="redirect_message2" type="text" size="50" default="" label="Redirection Message for a 2nd language:" description="Optional - give a message upon redirection. "/>
+  		<field name="language_code3" type="text" size="10" default="" label="Language code for a 3rd language redirect:" description="Use the joomla language code here: en-GB, de-DE, nl-NL, etc. "/>
+		<field name="redirect_destination3" type="text" size="50" default="" label="Redirect to this URL for a 3rd language:" description="URL to redirect failed login attempts." />
+  		<field name="redirect_message3" type="text" size="50" default="" label="Redirection Message for a 3rd language" description="Optional - give a message upon redirection. "/>
+		<field type="spacer" />
+		<field name="clear_cache" type="radio" default="0" label="Clear page cache (system cache plugin) on login failure:" description="Normally set to Off. Set to On if the system cache plugin is enabled and your Redirection Message does not appear after a failed login attempt.">
+			<option value="0">Off</option>
+			<option value="1">On</option>
+		</field>
+		<field name="debug" type="radio" default="0" label="Turn on debugging mode (normally leave this off):" description="Normally leave this off.">
+		<option value="0">Off</option>
+		<option value="1">On</option>
+		</field>
+	</fieldset>
+	</fields>
+	</config>
+</extension >

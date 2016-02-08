@@ -1,0 +1,311 @@
+<?php
+/**
+ * @package		Joomla.Site
+ * @subpackage	com_users
+ * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+defined('_JEXEC') or die;
+
+require_once JPATH_COMPONENT.'/controller.php';
+
+/**
+ * Profile controller class for Users.
+ *
+ * @package		Joomla.Site
+ * @subpackage	com_users
+ * @since		1.6
+ */
+class UsersControllerProfile extends UsersController
+{
+	/**
+	 * Method to check out a user for editing and redirect to the edit form.
+	 *
+	 * @since	1.6
+	 */
+	public function edit()
+	{
+		$app			= JFactory::getApplication();
+		$user			= JFactory::getUser();
+		$loginUserId	= (int) $user->get('id');
+
+		// Get the previous user id (if any) and the current user id.
+		$previousId = (int) $app->getUserState('com_users.edit.profile.id');
+		$userId	= (int) JRequest::getInt('user_id', null, '', 'array');
+
+		// Check if the user is trying to edit another users profile.
+		if ($userId != $loginUserId) {
+			JError::raiseError(403, JText::_('JERROR_ALERTNOAUTHOR'));
+			return false;
+		}
+
+		// Set the user id for the user to edit in the session.
+		$app->setUserState('com_users.edit.profile.id', $userId);
+
+		// Get the model.
+		$model = $this->getModel('Profile', 'UsersModel');
+
+		// Check out the user.
+		if ($userId) {
+			$model->checkout($userId);
+		}
+
+		// Check in the previous user.
+		if ($previousId) {
+			$model->checkin($previousId);
+		}
+
+		// Redirect to the edit screen.
+		$this->setRedirect(JRoute::_('index.php?option=com_users&view=profile&layout=edit', false));
+	}
+
+	/**
+	 * Method to save a user's profile data.
+	 *
+	 * @return	void
+	 * @since	1.6
+	 */
+	public function save()
+	{
+	
+		// Check for request forgeries.
+		//JSession::checkToken() or jexit(JText::_('JINVALID_TOKEN'));
+		
+
+        // Initialise variables.
+        $app	= JFactory::getApplication();
+
+        $app->setUserState('users.editinterest',0);
+
+        $model	= $this->getModel('Profile', 'UsersModel');
+		$user	= JFactory::getUser();
+		$userId	= (int) $user->get('id');
+		$useridd=$userId;
+
+        $error = false;
+        $profileImageErrors = array();
+		
+		if (isset($_POST["fromwhere"]) && $_POST["fromwhere"]=="editprofile"){
+			
+			$editProfileVersion = 2 - ($userId % 2);
+			ideary::logUserExperience(UserExperience::EditProfile, $userId, $editProfileVersion);
+			
+            $jform['name'] = $_POST['jform']['name'];
+            $jform['profile']['dob'] = $_POST['jform']['profile']['dob'];
+            $jform['profile']['country'] = $_POST['jform']['profile']['country'];
+            $jform['profile']['region'] = $_POST['jform']['profile']['region'];
+            $jform['profile']['city'] = $_POST['jform']['profile']['city'];
+            $jform['profile']['phone'] = $_POST['jform']['profile']['phone'];
+            $jform['profile']['address1'] = $_POST['jform']['profile']['address1'];
+            $jform['profile']['address2'] = $_POST['jform']['profile']['address2'];
+            $jform['profile']['website'] = $_POST['jform']['profile']['website'];
+            $jform['profile']['aboutme'] = $_POST['jform']['profile']['aboutme'];
+
+            $app->setUserState('jform', $jform);
+            $app->setUserState('juser_interests', $_POST['juser_interests']);
+
+            $file['error'] = $_FILES['jform']['error']['profilepicture']['file'];
+            $file['size'] = $_FILES['jform']['size']['profilepicture']['file'];
+            $file['type'] = $_FILES['jform']['type']['profilepicture']['file'];
+            $file['name'] = $_FILES['jform']['name']['profilepicture']['file'];
+            $file['tmp_name'] = $_FILES['jform']['tmp_name']['profilepicture']['file'];
+
+            $profileImageErrors = Ideary::validateUploadedImage($file, 200, 200);
+            $app->setUserState('profile-image-errors', $profileImageErrors);
+
+            if(count($profileImageErrors)){
+                $error = true;
+            }
+
+            if($error){
+                $this->setRedirect(JRoute::_('index.php?option=com_users&view=profile&layout=edit&user_id='.$userId, false));
+                return false;
+            }
+            else{
+
+                //subo imagen de perfil
+                $profileImg = $_FILES['jform'];
+
+                if($profileImg['error']['profilepicture']['file']==0){
+
+                    $profileImg['error']['profilepicture']['file'];
+
+					$folder = "templates/beez_20/images/user_profile/".$userId."/";
+
+					ideary::rrmdir($folder);
+
+					if (!file_exists($folder)) {
+						mkdir($folder, 0777, true);
+					}
+
+					$original_folder = $folder.'original/';
+					if (!file_exists($original_folder)) {
+						mkdir($original_folder, 0777, true);
+					}
+
+					$cincuenta_folder = $folder.'50/';
+					if (!file_exists($cincuenta_folder)) {
+						mkdir($cincuenta_folder, 0777, true);
+					}
+
+					$doscientos_folder = $folder.'200/';
+					if (!file_exists($doscientos_folder)) {
+						mkdir($doscientos_folder, 0777, true);
+					}
+					
+					$ext = "." . pathinfo($profileImg['name']['profilepicture']['file'], PATHINFO_EXTENSION);
+					$randName = rand(1, getrandmax());
+					$fullRandName = $original_folder . $randName . $ext;
+					
+					while(file_exists($fullRandName)) {
+						$randName = rand(1, getrandmax());
+						$fullRandName = $original_folder . $randName . $ext;
+					}
+
+					$ok = move_uploaded_file($profileImg['tmp_name']['profilepicture']['file'], $fullRandName);
+
+					if($ok){
+						Ideary::image_resize($fullRandName, $cincuenta_folder.$randName . $ext, 50, 50, true);
+						Ideary::image_resize($fullRandName, $doscientos_folder.$randName . $ext, 200, 200, true);
+
+						Ideary::saveProfileImage($userId, $randName . $ext);
+					}
+
+                }
+
+                $result = Ideary::saveInterests($userId,$_POST["juser_interests"]);    // aca guardo los intereses
+
+                //subo imagen de fondo
+                $backgroundImg = $_FILES['background-img'];
+
+                if($backgroundImg['error']==0){
+                    $folder = "templates/beez_20/images/user_backgrounds/".$userId."/";
+
+                    if (!file_exists($folder)) {
+                        mkdir($folder, 0777, true);
+                    }
+					
+					$ext = "." . pathinfo($backgroundImg['name'], PATHINFO_EXTENSION);
+					$randName = rand(1, getrandmax());
+					$fullRandName = $folder . $randName . $ext;
+					
+					while(file_exists($fullRandName)) {
+						$randName = rand(1, getrandmax());
+						$fullRandName = $folder . $randName . $ext;
+					}
+					
+                    $ok = move_uploaded_file($backgroundImg["tmp_name"], $fullRandName);
+
+                    if($ok){
+                        ideary::saveBgImage($userId, $randName . $ext);
+                    }
+                }
+            }
+
+		}elseif (isset($_POST["fromwhere"]) && $_POST["fromwhere"]=="editconfiguration"){
+			$data_notif = JRequest::getVar('privacidad_notificaciones', array(), 'post', 'array');
+			$result = Ideary::saveUserNotif($userId,$data_notif);    // aca guardo los intereses
+		}
+		
+		// Get the user data.
+		$data = JRequest::getVar('jform', array(), 'post', 'array');
+
+		//var_dump($data);
+		// Force the ID to this user.
+		$data['id'] = $userId;
+
+		// Validate the posted data.
+		$form = $model->getForm();
+		
+		if (!$form) {
+			JError::raiseError(500, $model->getError());
+			return false;
+		}
+		// Validate the posted data.
+		
+		//$data = $model->validate($form, $data);
+		
+		//var_dump($data);die;
+
+		
+		
+
+		// Check for errors.
+		if ($data === false) {
+			// Get the validation messages.
+			$errors	= $model->getErrors();
+
+			// Push up to three validation messages out to the user.
+			for ($i = 0, $n = count($errors); $i < $n && $i < 3; $i++) {
+				if ($errors[$i] instanceof Exception) {
+					$app->enqueueMessage($errors[$i]->getMessage(), 'warning');
+				} else {
+					$app->enqueueMessage($errors[$i], 'warning');
+				}
+			}
+
+			// Save the data in the session.
+			$app->setUserState('com_users.edit.profile.data', $data);
+
+			// Redirect back to the edit screen.
+			$userId = (int) $app->getUserState('com_users.edit.profile.id');
+//			$this->setRedirect(JRoute::_('index.php?option=com_users&view=profile&layout=edit&user_id='.$userId, false));
+			$this->setRedirect(JRoute::_('index.php?option=com_users&view=profile&user_id='.$userId, false));
+			return false;
+		}
+
+        mysql_set_charset("utf8");
+		// Attempt to save the data.
+		$return	= $model->save($data);
+		
+		if (isset($data["params"]["language"]))
+		{
+			$currentuserlang=$data["params"]["language"];
+			$currentuserlang = substr($currentuserlang, 0, 2);
+		}else{
+			$currentuserlang="es";
+		}
+		// Check for errors.
+		if ($return === false) {
+			// Save the data in the session.
+			$app->setUserState('com_users.edit.profile.data', $data);
+
+			// Redirect back to the edit screen.
+			$userId = (int)$app->getUserState('com_users.edit.profile.id');
+			$this->setMessage(JText::sprintf('COM_USERS_PROFILE_SAVE_FAILED', $model->getError()), 'warning');
+		//	$this->setRedirect(JRoute::_('index.php?option=com_users&view=profile&layout=edit&user_id='.$userId, false));
+			$this->setRedirect(JRoute::_('index.php?option=com_users&view=profile&user_id='.$useridd . '&lang='.$currentuserlang));
+			return false;
+		}
+
+		// Redirect the user and adjust session state based on the chosen task.
+		switch ($this->getTask()) {
+			case 'apply':
+				// Check out the profile.
+				$app->setUserState('com_users.edit.profile.id', $return);
+				$model->checkout($return);
+				// Redirect back to the edit screen.
+				$this->setMessage(JText::_('COM_USERS_PROFILE_SAVE_SUCCESS'));
+				$this->setRedirect(JRoute::_(($redirect = $app->getUserState('com_users.edit.profile.redirect')) ? $redirect : 'index.php?option=com_users&view=profile&layout=edit&hidemainmenu=1', false));
+				break;
+
+			default:
+				// Check in the profile.
+				$userId = (int)$app->getUserState('com_users.edit.profile.id');
+				if ($userId) {
+					$model->checkin($userId);
+				}
+
+				// Clear the profile id from the session.
+				$app->setUserState('com_users.edit.profile.id', null);
+				// Redirect to the list screen.
+				$this->setMessage(JText::_('COM_USERS_PROFILE_SAVE_SUCCESS'));
+				$this->setRedirect(JRoute::_(($redirect = $app->getUserState('com_users.edit.profile.redirect')) ? $redirect : 'index.php?option=com_users&view=profile&user_id='.$return, false));
+				break;
+		}
+
+		// Flush the data from the session.
+		$app->setUserState('com_users.edit.profile.data', null);
+	}
+}

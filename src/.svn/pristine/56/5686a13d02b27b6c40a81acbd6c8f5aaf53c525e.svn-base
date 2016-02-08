@@ -1,0 +1,17 @@
+
+p {
+	color: #747474;
+	font-family: georgia;
+	font-size: 13px;
+}
+
+.comment-author-tag {
+	border: none;
+	border-radius: 3px;
+	padding-left: 4px;
+	padding-right: 4px;
+	background-color: #AAB3AB;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	color: #e2e9e2;
+}

@@ -1,0 +1,31 @@
+﻿; $Id: es-ES.mod_socialloginandsocialshare.ini 1.7 2012-08-30 02:40:25Z Team LoginRadius $
+; Joomla! Project
+; Copyright (C) 2011 - till Open Source Matters. All rights reserved.
+; License GNU General Public License version 2 or later; see LICENSE.txt, see LICENSE.php
+; Note : All ini files need to be saved as UTF-8 - No BOM
+
+MOD_LOGINRADIUS="Social Login And Social Share"
+MOD_LOGINRADIUS_XML_DESCRIPTION="LoginRadius permite inicio de sesión en sitios web Joomla sociales".
+MOD_LOGINRADIUS_FORGOT_YOUR_PASSWORD="¿Ha olvidado su contraseña?"
+MOD_LOGINRADIUS_FORGOT_YOUR_USERNAME="¿Ha olvidado su nombre de usuario?"
+MOD_LOGINRADIUS_HINAME="Hola %s"
+MOD_LOGINRADIUS_REGISTER="Crear una cuenta"
+MOD_LOGINRADIUS_REMEMBER_ME="Remember Me"
+MOD_LOGINRADIUS_VALUE_NAME="Nombre"
+MOD_LOGINRADIUS_VALUE_USERNAME="Nombre de usuario"
+MOD_LOGINRADIUS_PLUGIN_ERROR="Por favor, instale o habilite el plugin de Ingreso Social"
+MOD_LOGINRADIUS_USERS_REGISTRATION="Registro de Usuario no está permitido."
+MOD_LOGINRADIUS_FIELD_LOGIN_REDIRECTURL_DESC="Los usuarios serán redirigidos a la página seleccionada, después de acceder a través de formulario de acceso se muestra con interfaz de entrada social. Elegir "QQ" "QQ" predeterminada volverá a la misma página."
+MOD_LOGINRADIUS_FIELD_LOGIN_REDIRECTURL_LABEL="Login página de redirección"
+MOD_LOGINRADIUS_FIELD_LOGOUT_REDIRECTURL_DESC="Seleccione la página, el usuario será redirigido a después con éxito de terminar su actual período de sesiones de la sesión. Elija entre todas las páginas aparecen en el menú desplegable. Elegir "_QQ_" "_QQ_" predeterminada volverá a la misma página."
+MOD_LOGINRADIUS_FIELD_LOGOUT_REDIRECTURL_LABEL="Salir página de redirección"
+MOD_LOGINRADIUS_FIELD_POST_TEXT_DESC="Este texto se muestra justo debajo de interfaz LoginRadius".
+MOD_LOGINRADIUS_FIELD_POST_TEXT_LABEL="Mensaje de texto"
+MOD_LOGINRADIUS_FIELD_PRE_TEXT_DESC="Este texto se muestra justo encima de la interfaz LoginRadius".
+MOD_LOGINRADIUS_FIELD_PRE_TEXT_LABEL="pre-texto"
+MOD_LOGINRADIUS_FIELD_USESECURE_DESC="¿Desea enviar datos cifrados contraseñas? No habilite esta opción si su Joomla no es accesible a través del protocolo HTTPS://".
+MOD_LOGINRADIUS_FIELD_USESECURE_LABEL="Encriptar Formulario de inicio de sesión"
+MOD_LOGINRADIUS_VALUE_ACCOUNT="Mi Cuenta"
+MOD_LOGINRADIUS_VALUE_MAP="Usted tiene"
+MOD_LOGINRADIUS_VALUE_MAPONE="Cuenta asignada a su cuenta."
+MOD_SOCIALLOGIN_AND_SOCIALSHARE_UNPLUSH_ERROR="Plugin <div style='color:red; margin-bottom:5px'> LoginRadius no está configurado! </div><br/><div style='line-height:1.3; margin-bottom:4px'> Para activar el plugin, navegar <b> Componentes > Share social y la inserción Compartir </b> LoginRadius API Key & secreto de su administración de Joomla. Siga <a href='http://support.loginradius.com/customer/portal/articles/677100-how-to-get-loginradius-api-key-and-secret' target='_blank'> </a> este documento para aprender cómo obtener el API & clave Secret </div> "

@@ -1,0 +1,297 @@
+<?php
+/**
+ * @package		Joomla.Site
+ * @subpackage	com_content
+ * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+// no direct access
+defined('_JEXEC') or die;
+
+JHtml::addIncludePath(JPATH_COMPONENT . '/helpers');
+
+// Create shortcuts to some parameters.
+$params	= $this->item->params;
+$images = json_decode($this->item->images);
+$urls   = json_decode($this->item->urls);
+$user	= JFactory::getUser();
+
+?>
+
+<script type="text/javascript">
+
+    function resize(){
+        var topbar_height = $('#topbar').outerHeight(true);
+        var window_height = $(window).height();
+        var remaining_height = window_height - topbar_height + 17;
+
+        var contentarea_padding = 40;
+        var contentarea_width = $(window).width() - contentarea_padding + 17;
+
+        $('#contentarea').css('width', contentarea_width+'px');
+        $('#wrapper2').css('padding-bottom', 0+'px');
+        $('#wrapper2').css('height', remaining_height+'px');
+    }
+
+    function recalculateTextRankingContentHeight(){
+
+        $('.text-ranking').each(function(){
+            var text_ranking_height = $(this).height();
+            var text_ranking_title_height = $(this).children('.text-ranking-title').outerHeight(true);
+            var text_ranking_img_height = $(this).children('.text-ranking-img').outerHeight(true);
+            text_ranking_img_height = (text_ranking_img_height != null)? text_ranking_img_height : 0;
+            var author_applauses_height = $(this).children('.author-applauses').outerHeight(true);
+            var author_applauses_margin_top_height = 25;
+
+            var text_ranking_content_height = text_ranking_height - (text_ranking_title_height+text_ranking_img_height+author_applauses_height+author_applauses_margin_top_height);
+
+            $(this).children('.text-ranking-content').css('height', text_ranking_content_height+'px');
+
+            /*var text_url = $(this).children('.text-ranking-title').children('a').attr('href');
+
+            $(this).children('.text-ranking-content').dotdotdot({
+                after: '<a href="'+text_url+'" style="background: none;"><div class="read-more" title="'+READ_MORE+'"></div></a>',
+                watch: true,
+                wrap: 'letter'
+            });*/
+
+            $(this).children('.text-ranking-content').dotdotdot({
+                watch: true,
+                wrap: 'letter',
+                ellipsis: ''
+            });
+
+        });
+
+    }
+
+    $(document).ready(function(){
+
+        resize();
+
+        $(window).resize(resize);
+
+		var baseurl = "<?php echo JURI::base();?>";
+        recalculateTextRankingContentHeight();
+
+        $("body").delegate('.more-applauded-texts-top-buttons', 'click', function(){
+
+                if($(this).hasClass('disabled')){
+                    return false;
+                }
+
+                $('.more-applauded-texts-top-buttons').addClass('disabled');
+                $('#more-applauded-texts-ajax-loading').show();
+                var period = $(this).data('period');
+                $.post(
+                    baseurl+"/index.php?option=com_content&task=get_texts_ranking&period="+period ,
+                    { period: period },
+                    function(data) {
+                        $('#ul-ranking').css('width', (data.text_count*320)+"px");
+                        $('#ul-ranking').html(data.text_html);
+                        $('.more-applauded-texts-top-buttons').removeClass('selected');
+                        $('.more-applauded-texts-top-buttons[data-period="'+period+'"]').addClass('selected');
+
+                        recalculateTextRankingContentHeight();
+
+                    }
+                    , "json"
+                ).done(function() {
+                        $('#more-applauded-texts-ajax-loading').hide();
+                        $('.more-applauded-texts-top-buttons').removeClass('disabled');
+                });
+        });
+
+        $("body").delegate('.text-ranking-saved-icon', 'click', function(){
+
+            if(USER_LOGGED){
+
+                var text_id = $(this).data('textId');
+
+                $.post(
+                    unarchive_url,
+                    { text_id: text_id },
+                    function(data) {
+
+                        if(data.success){
+                            var html = '<div class="text-ranking-save-icon" title="'+SAVE+'" data-text-id="'+text_id+'"></div>';
+                            $('.save-container[data-text-id="'+text_id+'"]').html(html);
+                        }
+
+                    }
+                    , "json"
+                );
+
+            }
+            else{
+                $('#login-required-popup').lightbox_me({
+                    centered: true,
+                    closeSelector: '#close-login-required-popup'
+                });
+            }
+
+        });
+
+        $("body").delegate('.text-ranking-save-icon', 'click', function(){
+
+            if(USER_LOGGED){
+
+                var text_id = $(this).data('textId');
+
+                $.post(
+                    add_to_saved_url,
+                    { text_id: text_id },
+                    function(data) {
+
+                        if(data.success){
+                            var html = '<div class="text-ranking-saved-icon" title="'+UNARCHIVE+'" data-text-id="'+text_id+'"></div>';
+                            $('.save-container[data-text-id="'+text_id+'"]').html(html);
+                        }
+
+                    }
+                    , "json"
+                );
+
+            }
+            else{
+                $('#login-required-popup').lightbox_me({
+                    centered: true,
+                    closeSelector: '#close-login-required-popup'
+                });
+            }
+
+        });
+
+        $("body").delegate('#h-scroll-ranking', 'mousewheel', function(event, delta){
+
+            var val = this.scrollLeft - (delta * 700);
+            $(this).stop().animate({scrollLeft:val}, 1000);
+            event.preventDefault();
+
+        });
+
+        $('body').keyup(function(event){
+
+            var target = $(event.target);
+
+            var makeScroll = false;
+
+            var delta = 0;
+            if((event.which==37)/* || (event.which==40)*/){
+                delta = 1;
+                makeScroll = true;
+            }
+            else if(/*(event.which==38) || */(event.which==39)){
+                delta = -1;
+                makeScroll = true;
+            }
+
+            if(makeScroll){
+                if(!$(target).is('input')){
+                    var val = $('#h-scroll-ranking').scrollLeft() - (delta * 700);
+                    $('#h-scroll-ranking').stop().animate({scrollLeft:val},1000);
+                }
+            }
+
+        });
+
+    });
+
+</script>
+
+<div id="more-applauded-texts-top">
+
+    <div id="more-applauded-texts-top-title"><?php echo JText::_('MOST_ACCLAIMED_TEXTS') ?></div>
+
+    <!--<div id="more-applauded-texts-top-buttons-container">
+
+        <div id="more-applauded-texts-ajax-loading"></div>
+        <div class="more-applauded-texts-top-buttons write-text-form-button <?php //echo ($this->period == "TODAY")? 'selected' : '' ?>" data-period="TODAY"><?php //echo JText::_('TODAY') ?></div>
+        <div class="more-applauded-texts-top-buttons write-text-form-button <?php //echo ($this->period == "LAST-WEEK")? 'selected' : '' ?>" data-period="LAST-WEEK"><?php //echo JText::_('LAST-WEEK') ?></div>
+        <div class="more-applauded-texts-top-buttons write-text-form-button <?php //echo ($this->period == "LAST-MONTH")? 'selected' : '' ?>" data-period="LAST-MONTH"><?php //echo JText::_('LAST-MONTH') ?></div>
+
+    </div>-->
+
+    <div style="clear: both;"></div>
+
+</div>
+
+<?php if(count($this->texts) != 0): ?>
+
+<div id="h-scroll-ranking">
+    <ul id="ul-ranking" style="width: <?php echo (count($this->texts)*320)?>px">
+        <?php $i=1 ?>
+
+        <?php foreach($this->texts as $text): ?>
+            <li class="li-ranking">
+
+                <div class="text-ranking">
+
+                    <div class="text-ranking-category-color" style="background: #<?php echo $text->color_code ?>;" title="<?php echo $text->cat_title ?>"></div>
+                    <div class="text-ranking-index">
+                        <div class="text-ranking-index-left"></div>
+                        <div class="text-ranking-index-center"><?php echo $i ?></div>
+                        <div class="text-ranking-index-right"></div>
+                    </div>
+
+                    <div class="save-container" data-text-id="<?php echo $text->id ?>">
+                        <?php if(is_null($text->saved)): ?>
+                            <div class="text-ranking-save-icon" title="<?php echo JText::_('SAVE') ?>" data-text-id="<?php echo $text->id ?>"></div>
+                        <?php else: ?>
+                            <div class="text-ranking-saved-icon" title="<?php echo JText::_('UNARCHIVE') ?>" data-text-id="<?php echo $text->id ?>"></div>
+                        <?php endif ?>
+                    </div>
+
+                    <?php if(!is_null($text->image_name)): ?>
+
+                        <div class="text-ranking-title with-image">
+                            <a href="<?php echo JRoute::_(ContentHelperRoute::getArticleRoute($text->id, $text->catid))?>">
+                            <?php echo ideary::truncate_chars($text->title, 21) ?>
+                            </a>
+                        </div>
+
+
+                        <div class="text-ranking-img">
+                            <a href="<?php echo JRoute::_(ContentHelperRoute::getArticleRoute($text->id, $text->catid))?>">
+                                <img src="<?php echo JURI::base()."templates/beez_20/images/texts/".$text->id."/ranking/".$text->image_name ?>">
+                            </a>
+                        </div>
+
+
+                        <div class="text-ranking-content with-image"><?php echo $text->introtext ?></div>
+   
+                    <?php else: ?>
+                        <div class="text-ranking-title">
+                            <a href="<?php echo JRoute::_(ContentHelperRoute::getArticleRoute($text->id, $text->catid))?>">
+                                <?php echo ideary::truncate_chars($text->title, 21) ?>
+                            </a>
+                        </div>
+                        <div class="text-ranking-content"><?php echo $text->introtext ?></div>
+                    <?php endif ?>
+
+                    <div class="author-applauses">
+                        <div class="text-ranking-author"><?php echo JText::_('BY')." <a style='color: #acacac;' href='".JRoute::_('index.php?option=com_contact&view=public&id='.$text->created_by)."'>".$text->name . "</a>"?></div>
+                        <?php $countApplauses = Ideary::getCountApplausesByTextId($text->id); ?>
+                        <?php if($countApplauses > 0): ?>
+                            <div class="text-ranking-applauses applauses-clickable" data-text-id="<?php echo $text->id ?>" data-text-title="<?php echo $text->title ?>">
+                                <div class="text-ranking-applauses-icon"></div>
+                                <div class="text-ranking-applauses-num"><?php echo $countApplauses ?></div>
+                            </div>
+                        <?php endif ?>
+                    </div>
+                </div>
+
+            </li>
+            <?php $i++ ?>
+        <?php endforeach ?>
+    </ul>
+</div>
+
+<?php else: ?>
+    <div id="h-scroll-ranking">
+        <ul id="ul-ranking">
+        </ul>
+    </div>
+<?php endif ?>
+

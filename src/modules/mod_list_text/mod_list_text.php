@@ -1,0 +1,65 @@
+<?php
+/**
+ * @package		Joomla.Site
+ * @subpackage	mod_list_texts
+ * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+// no direct access
+defined('_JEXEC') or die;
+
+// Include the syndicate functions only once
+require_once dirname(__FILE__).'/helper.php';
+
+//$link	= $params->get('link');
+
+//$folder	= modRandomImageHelper::getFolder($params);
+//$images	= modRandomImageHelper::getImages($params, $folder);
+
+/*
+if (!count($images)) {
+	echo JText::_('MOD_RANDOM_IMAGE_NO_IMAGES');
+	return;
+}*/
+
+if ($_GET["option"]!="com_contact" && ($_GET["option"]=="com_content" && $_GET["view"]!="article" && $_GET["view"]!="edit"  && $_GET["view"]!="ranking") && $_GET["option"]!="com_users" ){ //si es home
+
+    $user	= JFactory::getUser();
+	$category_post = $_POST["category"];
+	$period_post = $_POST["period"];
+	$text_search_post = $_POST["text-search"];
+	$userId = $user->get('id');
+
+	/*if((($category_post=="") || (is_null($category_post))) && ($userId!=0)){
+	   // $texts = ideary::getTextsAccordingToUser($userId);
+		//if(count($texts) == 0){
+			$texts = ideary::getTexts($category_post, $period_post, $text_search_post, $userId);
+		//}
+	}
+	else{
+		$texts = ideary::getTexts($category_post, $period_post, $text_search_post, $userId);
+	}*/
+
+    if(!$text_search_post){
+        $text_search_post = $_GET['search'];
+    }
+
+    $limit = isset($_GET['offset'])? $_GET['offset'] : 20;
+
+    $texts = ideary::getTexts($category_post, $period_post, $text_search_post, $userId, 0, $limit);
+
+    $offset = count($texts);
+
+    $countAlltexts = ideary::getTextsCount($category_post, $period_post, $text_search_post, $userId);
+
+	$users = array();
+
+	if($text_search_post){
+		$users = ideary::getWriterSearch($text_search_post, $userId);
+	}
+
+
+	$moduleclass_sfx = htmlspecialchars($params->get('moduleclass_sfx'));
+	require JModuleHelper::getLayoutPath('mod_list_text', $params->get('layout', 'default'));
+}

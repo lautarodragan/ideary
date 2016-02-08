@@ -1,0 +1,189 @@
+<?php
+/**
+ * @package		Joomla.Site
+ * @subpackage	com_contact
+ * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+defined('_JEXEC') or die;
+
+/**
+ * Contact Component Controller
+ *
+ * @package		Joomla.Site
+ * @subpackage	com_contact
+ * @since 1.5
+ */
+class ContactController extends JControllerLegacy
+{
+	/**
+	 * Method to display a view.
+	 *
+	 * @param	boolean			If true, the view output will be cached
+	 * @param	array			An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
+	 *
+	 * @return	JController		This object to support chaining.
+	 * @since	1.5
+	 */
+	public function display($cachable = false, $urlparams = false)
+	{
+		$cachable = true;
+
+		// Get the document object.
+		$document = JFactory::getDocument();
+
+		// Set the default view name and format from the Request.
+		$vName		= JRequest::getCmd('view', 'categories');
+		JRequest::setVar('view', $vName);
+
+		$user = JFactory::getUser();
+
+
+
+		$safeurlparams = array('catid'=>'INT', 'id'=>'INT', 'cid'=>'ARRAY', 'year'=>'INT', 'month'=>'INT', 'limit'=>'UINT', 'limitstart'=>'UINT',
+			'showall'=>'INT', 'return'=>'BASE64', 'filter'=>'STRING', 'filter_order'=>'CMD', 'filter_order_Dir'=>'CMD', 'filter-search'=>'STRING', 'print'=>'BOOLEAN', 'lang'=>'CMD');
+
+		parent::display($cachable, $safeurlparams);
+
+		return $this;
+	}
+
+    public function get_texts_of_author(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $author_id = JRequest::getInt('author_id');
+        $user_id = JRequest::getInt('user_id');
+        $profile = JRequest::getInt('profile');
+		$pub = JRequest::getInt('published');
+        $type = JRequest::getString('type');
+
+		$authorsection = JRequest::getInt('authorsection');		
+		$texts = ideary::getTextsByUserId($author_id, $user_id,$pub);
+        $textHtmlArray = array();
+
+		if(!empty($texts)){
+			foreach($texts as $index => $text){
+				$textHtmlArray[] = ideary::removeNewLinesFromString(ideary::generateTextContent($text, $author_id, $index, $profile, $authorsection, false, $type));
+			}
+	
+		}
+        /*else{
+			$textHtmlArray[] = '<div class="text"><div class="text-data" style="margin-left: 0px !important;">Todavia no redactaste tu primer texto?</div></div>';
+		}*/
+
+        echo json_encode(array('texts' => $textHtmlArray));
+
+        $app->close();
+
+    }
+	public function get_texts_draft_of_author_url(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $author_id = JRequest::getInt('author_id');
+        $pub = JRequest::getInt('published');
+
+        $user_id = JFactory::getUser()->get('id');
+        $texts = ideary::getTextsByUserId($author_id, $user_id,$pub);
+		$authorsection = JRequest::getInt('authorsection');		
+
+        $textHtmlArray = array();
+
+        foreach($texts as $index => $text){
+            $textHtmlArray[] = ideary::removeNewLinesFromString(ideary::generateTextContent($text, $user_id, $index,false,$authorsection));
+        }
+
+        echo json_encode(array('texts' => $textHtmlArray));
+
+        $app->close();
+
+    }
+	public function get_texts_favourites_of_author_url(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $author_id = JRequest::getInt('author_id');
+	
+        $texts = ideary::getFavArchTexts(1);
+		$authorsection = JRequest::getInt('authorsection');
+		
+        $textHtmlArray = array();
+
+		if(!empty($texts)){
+			foreach($texts as $index => $text){
+				$textHtmlArray[] = ideary::removeNewLinesFromString(ideary::generateTextContent($text, $author_id, $index,true,$authorsection));
+			}
+	
+		}
+        /*else{
+			$textHtmlArray[] = '<div class="text"><div class="text-data" style="margin-left: 0px !important;">Aun no has guardado ningun favorito</div></div>';
+		}*/
+		
+		echo json_encode(array('texts' => $textHtmlArray));			
+
+        $app->close();
+
+    }
+	
+	public function get_texts_archived_of_author_url(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $author_id = JRequest::getInt('author_id');
+        //$user_id = JFactory::getUser()->get('id');
+		$authorsection = JRequest::getInt('authorsection');
+        $texts = ideary::getFavArchTexts(0);
+
+        $textHtmlArray = array();
+
+       	if(!empty($texts)){
+			foreach($texts as $index => $text){
+				$textHtmlArray[] = ideary::removeNewLinesFromString(ideary::generateTextContent($text, $author_id, $index,$authorsection));
+			}
+	
+		}
+        /*else{
+			$textHtmlArray[] = '<div class="text"><div class="text-data" style="margin-left: 0px !important;">Aun no has guardado ningun text</div></div>';
+		}*/
+
+        echo json_encode(array('texts' => $textHtmlArray));
+
+        $app->close(); 
+
+    }
+
+    public function get_texts_applauded_by_author(){
+
+        // Get the application object.
+        $app = JFactory::getApplication();
+
+        $author_id = JRequest::getInt('author_id');
+        $user_id = JRequest::getInt('user_id');
+        $authorsection = JRequest::getInt('authorsection');
+
+        $texts = ideary::getTextsApplaudedByUser($author_id, $user_id);
+
+        $textHtmlArray = array();
+
+        if(!empty($texts)){
+			foreach($texts as $index => $text){
+				$textHtmlArray[] = ideary::removeNewLinesFromString(ideary::generateTextContent($text, $author_id, $index,true,$authorsection));
+			}
+	
+		}
+        /*else{
+			$textHtmlArray[] = '<div class="text"><div class="text-data" style="margin-left: 0px !important;">Aun no has aplaudido ningun texto</div></div>';
+		}*/
+
+        echo json_encode(array('texts' => $textHtmlArray));
+
+        $app->close();
+
+    }
+}

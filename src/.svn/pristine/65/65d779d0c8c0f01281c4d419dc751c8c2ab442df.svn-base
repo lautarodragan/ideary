@@ -1,0 +1,286 @@
+<?php
+/**
+ * @package		Joomla.Site
+ * @subpackage	mod_forgot_password
+ * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+// no direct access
+defined('_JEXEC') or die;
+?>
+
+<script type="text/javascript">
+
+    $(document).ready(function(){
+
+        $('input[type=password]').keydown(function(event) {
+
+            var isAllTextSelected = this.value.slice(this.selectionStart, this.selectionEnd) == this.value;
+            var isLastChar = $(this).val().length == 1;
+            if (isAllTextSelected && $(this).val().length > 0) {
+                $(this).val('');
+            }
+            if ((event.which == 8 || event.which == 46) && (isLastChar || isAllTextSelected)) { //backspace event
+
+                event.preventDefault();
+                $(this).val('');
+            }
+        });
+
+        $('#register-form-button').click(function(event){
+            event.preventDefault();
+
+            var register_form_button = $(this);
+
+            if($(this).hasClass('disabled')){
+                return false;
+            }
+
+            var success = true;
+
+            var jform_name = $('#jform_name');
+            var jform_email1 = $('#jform_email1');
+            var jform_email2 = $('#jform_email2');
+            var jform_password1 = $('#jform_password1');
+            var jform_password2 = $('#jform_password2');
+            $(jform_name).removeClass('write-invalid');
+            $(jform_email1).removeClass('write-invalid');
+            $(jform_email2).removeClass('write-invalid');
+            $(jform_password1).removeClass('write-invalid');
+            $(jform_password2).removeClass('write-invalid');
+
+            $('.register-form-error').hide();
+
+            if($(jform_name).val() == ''){
+                //$(jform_name).addClass('write-invalid');
+                var register_form_input_container = $(jform_name).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('Debés ingresar tu nombre.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if(!validateEmail($(jform_email1).val())){
+                //$(jform_email1).addClass('write-invalid');
+                var register_form_input_container = $(jform_email1).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('El correo electrónico no es válido.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if(!validateEmail($(jform_email2).val())){
+                //$(jform_email2).addClass('write-invalid');
+                var register_form_input_container = $(jform_email2).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('El correo electrónico no es válido.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if($(jform_email1).val() != $(jform_email2).val()){
+                //$(jform_email1).addClass('write-invalid');
+                //$(jform_email2).addClass('write-invalid');
+                var register_form_input_container = $(jform_email1).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('Los correos electrónicos no coinciden.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if($(jform_password1).val().length < 7){
+                //$(jform_password1).addClass('write-invalid');
+                var register_form_input_container = $(jform_password1).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('Debés ingresar más de 6 caracteres.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if($(jform_password2).val().length < 7){
+                //$(jform_password2).addClass('write-invalid');
+                var register_form_input_container = $(jform_password2).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('Debés ingresar más de 6 caracteres.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if($(jform_password1).val() != $(jform_password2).val()){
+                //$(jform_password1).addClass('write-invalid');
+                //$(jform_password2).addClass('write-invalid');
+                var register_form_input_container = $(jform_password1).parents('.register-form-input-container');
+                var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                $(register_form_error_center).text('Las contraseñas no coinciden.');
+                var register_form_error = $(register_form_input_container).find('.register-form-error');
+                $(register_form_error).fadeIn('slow');
+                success = false;
+            }
+
+            if(success){
+                $(this).addClass('disabled');
+
+                $.post(check_email_existence_url,
+                    { "email": $(jform_email1).val() },
+                    function(data){
+                        if(data.exist){
+
+                            var register_form_input_container = $(jform_email1).parents('.register-form-input-container');
+                            var register_form_error_center = $(register_form_input_container).find('.register-form-error-center');
+                            $(register_form_error_center).text('El correo electrónico ya existe, ingrese otro.');
+                            var register_form_error = $(register_form_input_container).find('.register-form-error');
+                            $(register_form_error).fadeIn('slow');
+
+                            $(register_form_button).removeClass('disabled');
+                        }
+                        else{
+                            $('#member-registration').submit();
+                        }
+                    }, "json");
+
+
+
+            }
+
+        });
+
+    });
+	function setusername(name){
+		document.getElementById("jform_username").value=document.getElementById("jform_name").value;
+	}
+
+</script>
+
+<div id="register_form">
+
+    <div class="popup-ideary-title"><?php echo JText::_('JOIN_IDEARY') ?>!</div>
+
+    <div id="message_not_logged_in_action"><?php echo JText::_('NOT_REGISTERED_YET') ?></div>
+
+    <div id="fb-tw-buttons-container" style="display:none;">
+        <a href="<?php echo $plugins[0]['link']?>">
+            <div class="social-button fb-social-button"><?php echo JText::_('REGISTER_WITH_FACEBOOK') ?></div>
+        </a>
+
+        <a href="<?php echo $plugins[1]['link']?>">
+            <div class="social-button tw-social-button"><?php echo JText::_('REGISTER_WITH_TWITTER') ?></div>
+        </a>
+
+        <div style="clear: both;"></div>
+    </div>
+
+<!--<div id="slogin-buttons" class="slogin-buttons <?php //echo $moduleclass_sfx?>">
+    <?php //if (count($plugins)): ?>
+        <?php //foreach($plugins as $link): ?>
+            <a href="<?php //echo JRoute::_($link['link']);?>"><span class="<?php //echo $link['class'];?>">&nbsp;</span></a>
+        <?php //endforeach; ?>
+    <?php //endif; ?>
+</div>-->
+
+    <div id="create-account"><?php echo JText::_('CREATE_ACCOUNT_WITH_EMAIL') ?></div>
+
+    <form id="member-registration" action="<?php echo JRoute::_('index.php?option=com_users&task=registration.register'); ?>" method="post" class="form-validate">
+
+    <div class="register-form-input-container">
+        <input type="text" name="jform[name]" id="jform_name" value="" onblur="setusername(this.value);" class="required register-form-input" size="30" aria-required="true" required="required" placeholder="<?php echo JText::_('ENTER_FIRST_AND_LAST_NAME') ?>">
+        <div class="register-form-error">
+            <div class="register-form-error-left"></div>
+            <div class="register-form-error-center"></div>
+            <div class="register-form-error-right"></div>
+        </div>
+    </div>
+
+    <div style="display:none;">
+        <input type="text" name="jform[username]" id="jform_username" value="" class="required register-form-input" size="30" aria-required="true" required="required" placeholder="<?php //echo JText::_('ENTER_USERNAME') ?>">
+    </div>
+
+    <div class="register-form-input-container">
+        <input type="text" name="jform[email1]" class="validate-email required register-form-input" id="jform_email1" value="" size="30" aria-required="true" required="required" placeholder="<?php echo JText::_('ENTER_EMAIL_ADDRESS') ?>">
+        <div class="register-form-error">
+            <div class="register-form-error-left"></div>
+            <div class="register-form-error-center"></div>
+            <div class="register-form-error-right"></div>
+        </div>
+    </div>
+
+    <div class="register-form-input-container">
+        <input type="text" name="jform[email2]" class="validate-email required register-form-input" id="jform_email2" value="" size="30" aria-required="true" required="required" aria-invalid="true" placeholder="<?php echo JText::_('CONFIRM_EMAIL') ?>">
+        <div class="register-form-error">
+            <div class="register-form-error-left"></div>
+            <div class="register-form-error-center"></div>
+            <div class="register-form-error-right"></div>
+        </div>
+    </div>
+
+    <div class="register-form-input-container">
+        <input type="password" name="jform[password1]" id="jform_password1" value="" autocomplete="off" class="validate-password required register-form-input" size="30" aria-required="true" required="required" placeholder="<?php echo JText::_('CREATE_STRONG_PASSWORD') ?>">
+        <div class="register-form-error">
+            <div class="register-form-error-left"></div>
+            <div class="register-form-error-center"></div>
+            <div class="register-form-error-right"></div>
+        </div>
+    </div>
+
+    <div class="register-form-input-container">
+        <input type="password" name="jform[password2]" id="jform_password2" value="" autocomplete="off" class="validate-password required register-form-input" size="30" aria-required="true" required="required" placeholder="<?php echo JText::_('CONFIRM_PASSWORD') ?>">
+        <div class="register-form-error">
+            <div class="register-form-error-left"></div>
+            <div class="register-form-error-center"></div>
+            <div class="register-form-error-right"></div>
+        </div>
+    </div>
+
+    <div id="terms-conditions"><?php echo JText::_('BY_REGISTERING_YOU_AGREE') ?> <a href="#"><?php echo JText::_('TERMS_AND_CONDITIONS') ?>.</a></div>
+
+	<div id="close-register_form-required-popup" class="close-button" title="<?php echo JText::_('CLOSE') ?>">
+		<img src="<?php echo JURI::base() . "templates/beez_20/images/register-form-close-icon.png"; ?>"/>
+	</div>
+
+        <!--<div class="registration">
+
+
+			<br clear ="all"/>
+			<fieldset>
+						<legend>Registro de Usuario</legend>
+						<dl>
+										<dt>
+						<span class="spacer"><span class="before"></span><span class="text"><label id="jform_spacer-lbl" class=""><strong class="red">*</strong> Campo obligatorio</label></span><span class="after"></span></span>									</dt>
+					<dd>&nbsp;</dd>
+						<dt>
+						<label id="jform_name-lbl" for="jform_name" class="hasTip required" title="Nombre Completo::Introduzca su nombre completo">Nombre Completo:<span class="star">&nbsp;*</span></label>									</dt>
+					<dd><input type="text" name="jform[name]" id="jform_name" value="" class="required" size="30" aria-required="true" required="required"></dd>
+					<dt>
+						<label id="jform_username-lbl" for="jform_username" class="hasTip required" title="Nombre de usuario::Introduzca su nombre de usuario">Nombre de usuario:<span class="star">&nbsp;*</span></label>									</dt>
+					<dd><input type="text" name="jform[username]" id="jform_username" value="" class="required" size="30" aria-required="true" required="required"></dd>
+													<dt>
+						<label id="jform_password1-lbl" for="jform_password1" class="hasTip required" title="Contrase�a::Introduzca la contrase�a deseada - Escriba un m�nimo de 4 caracteres">Contrase�a:<span class="star">&nbsp;*</span></label>									</dt>
+					<dd><input type="password" name="jform[password1]" id="jform_password1" value="" autocomplete="off" class="validate-password required" size="30" aria-required="true" required="required"></dd>
+													<dt>
+						<label id="jform_password2-lbl" for="jform_password2" class="hasTip required" title="Confirmar contrase�a::Confirmar su contrase�a">Confirmar contrase�a:<span class="star">&nbsp;*</span></label>									</dt>
+					<dd><input type="password" name="jform[password2]" id="jform_password2" value="" autocomplete="off" class="validate-password required" size="30" aria-required="true" required="required"></dd>
+						<dt>
+						<label id="jform_email1-lbl" for="jform_email1" class="hasTip required" title="Correo electr�nico::Introduzca su direcci�n de e-mail">Correo electr�nico:<span class="star">&nbsp;*</span></label>									</dt>
+					<dd><input type="email" name="jform[email1]" class="validate-email required" id="jform_email1" value="" size="30" aria-required="true" required="required"></dd>
+						<dt>
+						<label id="jform_email2-lbl" for="jform_email2" class="hasTip required invalid" title="Confirmar correo electr�nico::Confirme su direcci�n de e-mail" aria-invalid="true">Confirmar correo electr�nico:<span class="star">&nbsp;*</span></label>									</dt>
+						<dd><input type="email" name="jform[email2]" class="validate-email required invalid" id="jform_email2" value="" size="30" aria-required="true" required="required" aria-invalid="true"></dd>
+			</fieldset>
+
+
+	    </div>-->
+
+        <button id="register-form-button" type="submit" class="validate"><?php echo JText::_('START') ?></button>
+        <input type="hidden" name="option" value="com_users" />
+        <input type="hidden" name="task" value="registration.register" />
+        <input type="hidden" name="return" value="<?php echo $_SERVER["HTTP_HOST"] . $_SERVER["REQUEST_URI"]?>" />
+        <?php echo JHtml::_('form.token');?>
+    </form>
+</div>
+<?php //$app->setUserState('users.registration.errorregis',false);?>

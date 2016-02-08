@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="component" version="1.6.0" method="upgrade"> 
+	<name>Texts</name>
+	<creationDate>05/12/2011</creationDate>
+	<author>2BigIdeas</author>
+	<authorEmail>ra@2bigideas.com</authorEmail>
+	<authorUrl>http://www.2bigideas.com</authorUrl>
+	<copyright>2bigideas</copyright>
+	<license>GNU/GPLv3 http://www.gnu.org/licenses/gpl-3.0.html</license>
+	<version>1.0.0</version>
+	<description>Texts</description>
+ 
+	<files folder="site">
+		<filename>texts.php</filename>
+		<folder>views</folder>
+	</files>
+ 
+	<administration>
+		<files folder="admin">
+			<filename>texts.php</filename>
+			<folder>views</folder>
+		</files>
+	</administration>
+</extension>
+
